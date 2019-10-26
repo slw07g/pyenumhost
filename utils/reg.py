@@ -2,6 +2,16 @@ import winreg as wr
 import os, sys
 import traceback
 
+class Value:
+    def __init__(self, val):
+        self.name, self.value, self.type = val
+
+    def __str__(self):
+        return (f'[{self.name}] = {self.value}')
+    
+    def __repr__(self):
+        return str(self)
+
 class Reg:
     def __init__(self):
         pass
@@ -27,27 +37,15 @@ class Reg:
 
         split = path.split('\\')
         root_name = split[0]
-        print(root_name)
+        #print(root_name)
         rest = '\\'
         if len(split) > 1:
             rest = '\\'.join(split[1:])
-            print(rest)
+            #print(rest)
         try:
             return (keymap[root_name], rest)
         except:
             return
-
-    @staticmethod
-    def get_value_by_name(hkey, valuename):
-        if type(hkey) == str:
-            # assume hkey is a path
-            pass
-
-        else:
-            # assume hkey is a handle to a regkey handle
-            pass
-
-        pass
 
     @staticmethod
     def get_value_by_index(hkey, idx):
@@ -83,40 +81,53 @@ class Reg:
     
     @staticmethod
     def open_key(path):
+        if type(path) != str:
+            return path
         (rootkey, subkey) = Reg.get_root_key(path)
         return wr.OpenKey(rootkey, subkey)
     
     @staticmethod
     def get_value(hkey, valuename):
         val = wr.QueryValueEx(hkey, valuename)
-        return val
+        return Value((valuename, val[0], val[1]))
 
     @staticmethod
     def get_hkey_values(hkey):
         ret = []
         for i in range(0xFFFF):
             try:
-                ret += (wr.EnumValue(hkey, i))
-            except:
+                ret.append(Value(wr.EnumValue(hkey, i)))
                 
-                break
-        return ret
-        
-    @staticmethod
-    def walk_key(hkey, recursive=False):
-        ret = {'\\': Reg.get_hkey_values(hkey)}
-        for i in range(0xFFFF):
-            try:
-                subkey = wr.EnumKey(hkey, i)
-                key = wr.OpenKey(hkey, subkey)
-                print(subkey)
-                print(key)
-                ret[subkey] = Reg.get_hkey_values(key)
             except:
                 #print(traceback.format_exc())
                 break
         return ret
         
+    @staticmethod
+    def get_subkey_values(hkey):
+        ret = {'\\': Reg.get_hkey_values(hkey)}
+        for i in range(0xFFFF):
+            try:
+                subkey = wr.EnumKey(hkey, i)
+                key = wr.OpenKey(hkey, subkey)
+                ret[subkey] = Reg.get_hkey_values(key)
+            except:
+                #print(traceback.format_exc())
+                break
+        return ret
+
+    @staticmethod
+    def list_subkeys(key):
+        hkey = key
+        if type(key) == str:
+            hkey = Reg.open_key(key)
+        ret = []
+        for i in range(0xFFFF):
+            try:
+                ret.append(wr.EnumKey(hkey, i))
+            except:
+                break
+        return ret
 def main():
 
     regkeyS = 'hkey_current_user/software/microsoft/windows/currentversion/run'
@@ -126,7 +137,7 @@ def main():
     print(hex(r))
     reg = wr.OpenKey(r, subkey)
     print(dir(reg))
-    vals = Reg.walk_key(reg)
+    vals = Reg.get_subkey_values(reg)
     print(Reg.get_value(reg, 'Box Edit'))
     print(vals)
     return
