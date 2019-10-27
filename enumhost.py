@@ -17,22 +17,39 @@ def on_linux():
 def enum_windows():
     regkeys = []
 
+
+def map_sid_to_users():
+    ret = {}
+    for sid in Reg.get_users_keys():
+        try:
+            profilepath = Reg.get_value(f'HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft\Windows NT/CurrentVersion/ProfileList/{sid}', 'ProfileImagePath')
+            profile = os.path.basename(profilepath.value)
+        except:
+            profile = '<NOT FOUND>'
+        finally:
+            ret[sid] = profile
+    return ret
+
 def check_autoruns():
     keys = ['hklm/software/microsoft/windows/currentversion/run']
-    for sid in Reg.list_subkeys('hkey_users/'):
-        if sid.lower().endswith('_classes'):
-            continue
+    for sid in Reg.get_users_keys():
         keys += [f'hkey_users/{sid}/software/microsoft/windows/currentversion/run']
     
     for key in keys:
         print(f'[{key}]')
         try:
-            print((Reg.get_subkey_values(Reg.open_key(key))))
+            vals = Reg.get_subkey_values(key)['\\']
         except:
-            print('  Access Denied')
+            vals = ['  Access Denied']
+        finally:
+            for val in vals:
+                print(f'  {val}')
 
 def main():
     check_autoruns()
+    sidinfo = map_sid_to_users()
+    
+    print(sidinfo)
     pass
 
 

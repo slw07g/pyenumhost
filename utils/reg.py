@@ -62,7 +62,8 @@ class Reg:
         pass
     
     @staticmethod
-    def enum_key(key, idx):
+    def enum_key(hkey, idx):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
         try:
             ret = wr.EnumKey(key, idx)
         except OSError:
@@ -71,9 +72,10 @@ class Reg:
             return ret
 
     @staticmethod
-    def enum_value(key, idx):
+    def enum_value(hkey, idx):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
         try:
-            ret = wr.EnumValue(key, idx)
+            ret = wr.EnumValue(hkey, idx)
         except OSError:
             ret = None
         finally:
@@ -88,11 +90,13 @@ class Reg:
     
     @staticmethod
     def get_value(hkey, valuename):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
         val = wr.QueryValueEx(hkey, valuename)
         return Value((valuename, val[0], val[1]))
 
     @staticmethod
     def get_hkey_values(hkey):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
         ret = []
         for i in range(0xFFFF):
             try:
@@ -105,6 +109,8 @@ class Reg:
         
     @staticmethod
     def get_subkey_values(hkey):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
+
         ret = {'\\': Reg.get_hkey_values(hkey)}
         for i in range(0xFFFF):
             try:
@@ -117,10 +123,8 @@ class Reg:
         return ret
 
     @staticmethod
-    def list_subkeys(key):
-        hkey = key
-        if type(key) == str:
-            hkey = Reg.open_key(key)
+    def list_subkeys(hkey):
+        hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
         ret = []
         for i in range(0xFFFF):
             try:
@@ -128,6 +132,17 @@ class Reg:
             except:
                 break
         return ret
+
+
+    @staticmethod
+    def get_users_keys():
+        keys = []
+        for sid in Reg.list_subkeys(r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'):
+            if sid.lower().endswith('_classes'):
+                continue
+            keys.append(sid)
+        return keys
+
 def main():
 
     regkeyS = 'hkey_current_user/software/microsoft/windows/currentversion/run'
