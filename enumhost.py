@@ -1,6 +1,8 @@
 import os, sys, argparse
 from utils.reg import Reg
+import columnar
 import traceback
+
 
 
 def on_windows():
@@ -39,25 +41,42 @@ def map_sid_to_users():
     return ret
 
 def enum_autoruns():
+    autoruns = {'GLOBAL (HKLM)': {} }  # { user: { valuename: value}}
     keys = {'hklm/software/microsoft/windows/currentversion/run': 'GLOBAL (HKLM)',
     'hklm/software/microsoft/windows/currentversion/runonce': 'GLOBAL (HKLM)'}
     users = map_sid_to_users()
     for sid in Reg.get_users_keys():
         keys[f'hkey_users/{sid}/software/microsoft/windows/currentversion/run'] = users[sid]
         keys[f'hkey_users/{sid}/software/microsoft/windows/currentversion/runonce'] = users[sid]
+        autoruns[users[sid]] = {}
         
     
     for key in keys.keys():
         print(f'{keys[key]} ({key})')
+        exception = None
         try:
             vals = Reg.get_subkey_values(key)['\\']
+        except PermissionError:
+            exception = 'ACCESS DENIED'
+            vals = None
+        except FileNotFoundError:
+            exception = 'KEY DOES NOT EXIST'
+            vals = None
         except:
-            vals = ['  Access Denied or Key does not exist']
+            print(traceback.format_exc())
         finally:
-            for val in vals:
-                print(f'  {val}')
-        print('\n\n')
-
+            if not vals and exception:
+                autoruns[keys[key]][f'{exception} ("{os.path.basename(key)}" KEY)'] = None
+            else:
+                for val in vals:
+                    autoruns[keys[key]][val.name] = val.value
+    
+    ret = []
+    for user in autoruns:
+        for val in autoruns[user]:
+                ret.append([user, val, autoruns[user][val]])
+    return (ret, ['User', 'Name', 'Path/Command'])
+    
 def enum_users():
     users = map_sid_to_users()
     ret = []
@@ -89,9 +108,16 @@ def enum_services():
             self.servicedll = servicedll
             
         def __str__(self):
-            return (f'Service: {self.name}\n  DisplayName: {self.displayname}\n  Type: {self.type}\n  '
-                    f'ImagePath: {self.path}\n  Start: {self.start}\n  RunAs: {self.user}\n  ServiceDLL: {self.servicedll}')
+            return (f'Service: {self.name}\n    DisplayName: {self.displayname}\n    Type: {self.type}\n    '
+                    f'ImagePath: {self.path}\n    Start: {self.start}\n    RunAs: {self.user}\n    ServiceDLL: {self.servicedll}')
 
+        def __row__(self):
+            return  [self.name, self.displayname, self.type, self.path, self.start, self.user, self.servicedll]
+        
+        @staticmethod
+        def __tableheader__():
+            return  ['name', 'displayname', 'type', 'path', 'start', 'user', 'servicedll']
+    rows = []
     subkeys = Reg.list_subkeys('HKLM/system/currentcontrolset/services')
     for subkey in subkeys:
         vals = { 'name': subkey, 
@@ -116,8 +142,9 @@ def enum_services():
             except:
                 pass
         svc = Service(vals['name'], vals['displayname'], vals['type'], vals['start'], vals['imagepath'], vals['objectname'], vals['servicedll'])
+        rows.append(svc.__row__())
 
-        print(svc)
+    return (rows, Service.__tableheader__())
         
         
         
@@ -125,12 +152,14 @@ def enum_services():
 
 def main():
     users = enum_users()
-    enum_services()
-    #enum_autoruns()
+    services = enum_services()
+    autoruns = enum_autoruns()
     sidinfo = map_sid_to_users()
     
     print(users)
-    print(sidinfo)
+    #print(columnar.columnar(services[0], headers=columnar[1]))
+    print(columnar.columnar([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID']))
+    print(columnar.columnar(autoruns[0], headers=autoruns[1]))
     pass
 
 
