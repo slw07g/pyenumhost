@@ -2,7 +2,7 @@ import os, sys, argparse
 from utils.reg import Reg
 import columnar
 import traceback
-
+import datetime
 
 
 def on_windows():
@@ -40,6 +40,22 @@ def map_sid_to_users():
             ret[sid] = profile
     return ret
 
+def enum_system():
+    keyroot = r'HKLM\software\microsoft\windows nt\currentversion'
+    valuenames = ['ProductName', 
+                  'BaseBuildRevisionNumber', 'BuildLab', 'BuildLabEx', 'CurrentVersion', 'CurrentMajorVersionNumber', 'CurrentMinorVersionNumber', 'CurrentBuildNumber', 'EditionID', 
+                  'InstallationType', 'InstallDate', 'InstallTime', 'PathName', 'SystemRoot', 'RegisteredOwner']
+    values = []
+    for valuename in valuenames:
+        value = Reg.get_value(keyroot, valuename)
+        if valuename.lower() in ['installtime', 'installdate']:
+            val = int(value.value)
+            if valuename.lower() == 'installtime':
+              val = (val - 116444736000000000)/10000000
+            value.value = datetime.datetime.fromtimestamp(val).strftime(r'%Y-%m-%dT%H:%M:%SZ')
+        values.append([valuename, value.value])
+    return (values, ['ValueName', 'Value'])
+
 def enum_autoruns():
     autoruns = {'GLOBAL (HKLM)': {} }  # { user: { valuename: value}}
     keys = {'hklm/software/microsoft/windows/currentversion/run': 'GLOBAL (HKLM)',
@@ -52,7 +68,7 @@ def enum_autoruns():
         
     
     for key in keys.keys():
-        print(f'{keys[key]} ({key})')
+        #print(f'{keys[key]} ({key})')
         exception = None
         try:
             vals = Reg.get_subkey_values(key)['\\']
@@ -82,7 +98,6 @@ def enum_users():
     ret = []
     for sid in users.keys():
         ret.append(users[sid])
-    print(ret)
     return ret
 
 def enum_services():     
@@ -147,19 +162,29 @@ def enum_services():
     return (rows, Service.__tableheader__())
         
         
-        
+def print_table_ex(rows :list, headers : list = None):
+    if not headers:
+        headers = rows[0]
+        rows = rows[1:]
+
+    print(columnar.columnar(rows, headers=headers))
          
+def print_table(rowsandheaders: list):
+    ''' Expects a list object of [<rows>, <headers>] '''
+    print_table_ex(rowsandheaders[0], rowsandheaders[1])
 
 def main():
     users = enum_users()
     services = enum_services()
     autoruns = enum_autoruns()
     sidinfo = map_sid_to_users()
-    
+    systeminfo = enum_system()
     print(users)
-    #print(columnar.columnar(services[0], headers=columnar[1]))
-    print(columnar.columnar([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID']))
-    print(columnar.columnar(autoruns[0], headers=autoruns[1]))
+    print_table(systeminfo)
+    print_table_ex([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'])
+    print_table_ex(autoruns[0])
+    print_table(services)
+    
     pass
 
 
