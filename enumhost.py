@@ -173,6 +173,27 @@ def print_table(rowsandheaders: list):
     ''' Expects a list object of [<rows>, <headers>] '''
     print_table_ex(rowsandheaders[0], rowsandheaders[1])
 
+def enum_installed_software():
+    rootkeys = [r'HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 
+                r'HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall']
+    valuenames = ['DisplayName', 'DisplayVersion', 'Publisher', 'VersionMajor', 'VersionMinor']
+    ret = []
+    for key in rootkeys:
+        x64 = key.lower().find('\\wow6432node\\') > 0
+        apps = sorted(Reg.list_subkeys(key))
+        for app in apps:
+            info = []
+            for valuename in valuenames:
+                try:
+                    value = Reg.get_value(os.path.join(key, app), valuename).value
+                except:
+                    value = None
+                info.append(value)
+            info.append(x64)    
+            ret.append(info)
+    headers = valuenames + ['x64']
+    return ([ret, headers])
+
 def main():
     users = enum_users()
     services = enum_services()
@@ -184,8 +205,7 @@ def main():
     print_table_ex([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'])
     print_table_ex(autoruns[0])
     print_table(services)
-    
-    pass
+    print_table(enum_installed_software())
 
 
 if __name__ == '__main__':
