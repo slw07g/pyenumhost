@@ -58,12 +58,16 @@ def enum_system():
 
 def enum_autoruns():
     autoruns = {'GLOBAL (HKLM)': {} }  # { user: { valuename: value}}
+    userpaths = {}
     keys = {'hklm/software/microsoft/windows/currentversion/run': 'GLOBAL (HKLM)',
-    'hklm/software/microsoft/windows/currentversion/runonce': 'GLOBAL (HKLM)'}
+    'hklm/software/microsoft/windows/currentversion/runonce': 'GLOBAL (HKLM)',
+    'HKLM/Software/Microsoft/Windows/CurrentVersion/policies/Explorer/Run' : 'GLOBAL (HKLM)'}
     users = map_sid_to_users()
     for sid in Reg.get_users_keys():
         keys[f'hkey_users/{sid}/software/microsoft/windows/currentversion/run'] = users[sid]
         keys[f'hkey_users/{sid}/software/microsoft/windows/currentversion/runonce'] = users[sid]
+        keys[f'hkey_users/{sid}/Software\Microsoft/Windows NT/CurrentVersion/Windows/Run'] = users[sid]
+        userpaths[sid] = Reg.get_value(f'HKLM/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/{sid}', 'ProfileImagePath').value
         autoruns[users[sid]] = {}
         
     
@@ -86,12 +90,18 @@ def enum_autoruns():
             else:
                 for val in vals:
                     autoruns[keys[key]][val.name] = val.value
-    
+    startupentries = []
+    for sid in userpaths:
+        folder = os.path.join(userpaths[sid], r'appdata\roaming\microsoft\windows\start menu\programs\startup')
+        for root, subdirs, files in os.walk(folder):
+            for file in files:
+                startupentries.append([users[sid], 'STARTUP_FOLDER', os.path.join(root, file)])
+        
     ret = []
     for user in autoruns:
         for val in autoruns[user]:
                 ret.append([user, val, autoruns[user][val]])
-    return (ret, ['User', 'Name', 'Path/Command'])
+    return (ret + startupentries, ['User', 'Name', 'Path/Command'])
     
 def enum_users():
     users = map_sid_to_users()
@@ -200,12 +210,14 @@ def main():
     autoruns = enum_autoruns()
     sidinfo = map_sid_to_users()
     systeminfo = enum_system()
+    installedsoftware = enum_installed_software()
+
     print(users)
     print_table(systeminfo)
     print_table_ex([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'])
-    print_table_ex(autoruns[0])
+    print_table(autoruns)
     print_table(services)
-    print_table(enum_installed_software())
+    print_table(installedsoftware)
 
 
 if __name__ == '__main__':
