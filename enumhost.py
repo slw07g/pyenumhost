@@ -102,7 +102,7 @@ def enum_autoruns():
         for val in autoruns[user]:
                 ret.append([user, val, autoruns[user][val]])
     return (ret + startupentries, ['User', 'Name', 'Path/Command'])
-    
+
 def enum_users():
     users = map_sid_to_users()
     ret = []
@@ -170,7 +170,16 @@ def enum_services():
         rows.append(svc.__row__())
 
     return (rows, Service.__tableheader__())
-        
+
+def enum_winlogon():
+    '''Enumerates values in the 
+       HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon key'''
+    ret = []
+    for value in Reg.get_subkey_values(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon')['\\']:
+        print(value)
+        ret.append([value.name, value.value])
+    
+    return [ret, ['WinLogon Value Name','Value']]
         
 def print_table_ex(rows :list, headers : list = None):
     if not headers:
@@ -211,6 +220,7 @@ def main():
     sidinfo = map_sid_to_users()
     systeminfo = enum_system()
     installedsoftware = enum_installed_software()
+    winlogon = enum_winlogon()
 
     print(users)
     print_table(systeminfo)
@@ -218,6 +228,7 @@ def main():
     print_table(autoruns)
     print_table(services)
     print_table(installedsoftware)
+    print_table(winlogon)
 
 
 if __name__ == '__main__':
