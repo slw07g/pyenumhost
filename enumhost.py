@@ -213,6 +213,10 @@ def enum_installed_software():
     headers = valuenames + ['x64']
     return ([ret, headers])
 
+def enum_scheduled_tasks():
+    #TODO
+    pass
+
 def main():
     users = enum_users()
     services = enum_services()
