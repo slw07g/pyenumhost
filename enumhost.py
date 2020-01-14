@@ -192,15 +192,17 @@ def enum_winlogon():
     
     return [ret, ['WinLogon Value Name','Value']]
         
-def print_table_ex(rows :list, headers : list = None):
+def print_table_ex(rows :list, headers : list = None, title: str=None):
     if not headers:
         headers = rows[0]
         rows = rows[1:]
+    if title:
+        print(f'\n\n\n{title}\n')
     print(columnar.columnar(rows, headers=headers, terminal_width=150))
          
-def print_table(rowsandheaders: list):
+def print_table(rowsandheaders: list, title: str=None):
     ''' Expects a list object of [<rows>, <headers>] '''
-    print_table_ex(rowsandheaders[0], rowsandheaders[1])
+    print_table_ex(rowsandheaders[0], rowsandheaders[1], title)
 
 def enum_installed_software():
     rootkeys = [r'HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 
@@ -236,13 +238,13 @@ def main():
     installedsoftware = enum_installed_software()
     winlogon = enum_winlogon()
 
-    print_table_ex([[user] for user in users], ['Username'])
-    print_table(systeminfo)
-    print_table_ex([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'])
-    print_table(autoruns)
-    print_table(services)
-    print_table(installedsoftware)
-    print_table(winlogon)
+    print_table(systeminfo, 'System Information')
+    print_table_ex([[user] for user in users], ['Username'], 'Users')
+    print_table_ex([[sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'], title='User SID Info')
+    print_table(autoruns, "AutoRuns")
+    print_table(services, 'Services')
+    print_table(installedsoftware, 'Installed Apps')
+    print_table(winlogon, 'WinLogon Settings')
 
 
 if __name__ == '__main__':
