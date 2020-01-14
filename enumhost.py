@@ -1,3 +1,14 @@
+'''A python script to enumerate information about a windows host.
+
+  If trying to store the output in a file, it may be necessary to 
+  set the PYTHONIOENCODING environment varible to utf16 prior to 
+  running the script. This is only necessary if encountering a 
+  UnicodeEncodeError exception. This can be done like so:
+
+    C:\> set PYTHONIOENCODING=utf16
+    C:\> python enumhost.py > output.txt
+'''
+
 import os, sys, argparse
 from utils.reg import Reg
 import columnar
@@ -176,7 +187,7 @@ def enum_winlogon():
        HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon key'''
     ret = []
     for value in Reg.get_subkey_values(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon')['\\']:
-        print(value)
+        #print(value)
         ret.append([value.name, value.value])
     
     return [ret, ['WinLogon Value Name','Value']]
@@ -185,8 +196,7 @@ def print_table_ex(rows :list, headers : list = None):
     if not headers:
         headers = rows[0]
         rows = rows[1:]
-
-    print(columnar.columnar(rows, headers=headers))
+    print(columnar.columnar(rows, headers=headers, terminal_width=150))
          
 def print_table(rowsandheaders: list):
     ''' Expects a list object of [<rows>, <headers>] '''
@@ -226,7 +236,7 @@ def main():
     installedsoftware = enum_installed_software()
     winlogon = enum_winlogon()
 
-    print(users)
+    print_table_ex([[user] for user in users], ['Username'])
     print_table(systeminfo)
     print_table_ex([ [sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'])
     print_table(autoruns)
