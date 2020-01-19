@@ -7,15 +7,31 @@
 
     C:\> set PYTHONIOENCODING=utf16
     C:\> python enumhost.py > output.txt
+
+  Requires packages: columnar, xmltodict
 '''
 
 import os, sys, argparse
-from utils.reg import Reg
-import columnar
-import traceback
 import datetime
 
+import columnar
+import traceback
+import xmltodict
 
+from utils.reg import Reg
+
+def print_table_ex(rows :list, headers : list = None, title: str=None):
+    if not headers:
+        headers = rows[0]
+        rows = rows[1:]
+    if title:
+        print(f'\n\n\n{title}\n')
+    print(columnar.columnar(rows, headers=headers, terminal_width=200))
+         
+def print_table(rowsandheaders: list, title: str=None):
+    ''' Expects a list object of [<rows>, <headers>] '''
+    print_table_ex(rowsandheaders[0], rowsandheaders[1], title)
+    
 def on_windows():
     return sys.platform.lower() == 'win32'
 
@@ -192,17 +208,7 @@ def enum_winlogon():
     
     return [ret, ['WinLogon Value Name','Value']]
         
-def print_table_ex(rows :list, headers : list = None, title: str=None):
-    if not headers:
-        headers = rows[0]
-        rows = rows[1:]
-    if title:
-        print(f'\n\n\n{title}\n')
-    print(columnar.columnar(rows, headers=headers, terminal_width=150))
-         
-def print_table(rowsandheaders: list, title: str=None):
-    ''' Expects a list object of [<rows>, <headers>] '''
-    print_table_ex(rowsandheaders[0], rowsandheaders[1], title)
+
 
 def enum_installed_software():
     rootkeys = [r'HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 
@@ -226,8 +232,53 @@ def enum_installed_software():
     return ([ret, headers])
 
 def enum_scheduled_tasks():
-    #TODO
-    pass
+    # https://docs.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-schema
+    ret = []
+    
+    headers = ['TaskFileName', 'TaskName', 'TaskDir', 'Description', 
+               'Author', 'PrincipalId', 'PrincipalSID', 'RunLevel', 'Action',
+               'ActionContext', 'Exec/Handler', 'Arguments/Data']
+    for root, subdirs, files in os.walk(os.path.expandvars(r'%windir%\system32\tasks')):
+        for file in files:
+            taskpath = os.path.join(root, file)
+            try:
+                taskinfo = xmltodict.parse(open(taskpath, 'rb').read())
+                #print(taskinfo)
+            except PermissionError:
+                continue
+            except:
+                print(f'Exception with Task File: {taskpath}')
+                print(traceback.format_exc())
+                continue
+
+            taskname = os.path.basename(taskinfo['Task']['RegistrationInfo']['URI'])
+            taskdir = os.path.dirname(taskinfo['Task']['RegistrationInfo']['URI'])
+            author = "" if 'Author' not in taskinfo['Task']['RegistrationInfo'] else taskinfo['Task']['RegistrationInfo']['Author']
+            principalid = taskinfo['Task']['Principals']['Principal']['@id']
+            usersid = taskinfo['Task']['Principals']['Principal'].get('UserId', '')
+            runlevel = taskinfo['Task']['Principals']['Principal'].get('RunLevel', '')
+            description = taskinfo['Task']['RegistrationInfo'].get('Description', '')
+            actions = taskinfo['Task']['Actions']
+            actioncontext = actions['@Context']
+            keys = ([x for x in actions])
+            keys.remove('@Context')
+            actiontype = keys[0]
+            action1 = action2 = ''
+            if actiontype == 'Exec':
+                action1 = actions['Exec']['Command']
+                action2 = actions['Exec'].get('Arguments', '')
+            elif actiontype == 'ComHandler':
+                action1 = actions['ComHandler']['ClassId']
+                action2 = actions['ComHandler'].get('Data', '')
+            else:
+                # SendEmail, ShowMessage
+                action1 = str(actions[actiontype])
+                action2 = ''
+            # TODO multiple rows for multiple actions/triggers?
+ 
+            ret.append([file, taskname, taskdir, description, author, principalid, usersid, runlevel, actiontype, actioncontext, action1, action2])
+    return (ret, headers)
+        
 
 def main():
     users = enum_users()
@@ -237,6 +288,7 @@ def main():
     systeminfo = enum_system()
     installedsoftware = enum_installed_software()
     winlogon = enum_winlogon()
+    tasks = enum_scheduled_tasks()
 
     print_table(systeminfo, 'System Information')
     print_table_ex([[user] for user in users], ['Username'], 'Users')
@@ -245,7 +297,7 @@ def main():
     print_table(services, 'Services')
     print_table(installedsoftware, 'Installed Apps')
     print_table(winlogon, 'WinLogon Settings')
-
+    print_table(tasks, 'Scheduled Tasks')
 
 if __name__ == '__main__':
     main()
