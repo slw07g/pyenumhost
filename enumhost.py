@@ -78,7 +78,7 @@ def enum_system():
         if valuename.lower() in ['installtime', 'installdate']:
             val = int(value.value)
             if valuename.lower() == 'installtime':
-              val = (val - 116444736000000000)/10000000
+              val = int((val - 116444736000000000)/10000000)
             value.value = datetime.datetime.fromtimestamp(val).strftime(r'%Y-%m-%dT%H:%M:%SZ')
         values.append([valuename, value.value])
     return (values, ['ValueName', 'Value'])
