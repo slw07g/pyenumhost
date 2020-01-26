@@ -4,12 +4,14 @@
   set the PYTHONIOENCODING environment varible to utf16 prior to 
   running the script. This is only necessary if encountering a 
   UnicodeEncodeError exception. This can be done like so:
-
+  
     C:\> set PYTHONIOENCODING=utf16
     C:\> python enumhost.py > output.txt
 
   Requires packages: columnar, xmltodict
 
+  Only tested on Windows 10, so it may potentially break on older OSes.
+  
   Author: Shanief Webb (https://github.com/slw07g)
 '''
 
