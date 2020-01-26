@@ -9,6 +9,8 @@
     C:\> python enumhost.py > output.txt
 
   Requires packages: columnar, xmltodict
+
+  Author: Shanief Webb (https://github.com/slw07g)
 '''
 
 import os, sys, argparse
@@ -50,15 +52,15 @@ def enum_windows():
 
 def map_sid_to_users():
     ret = {}
-    builtins = { 'S-1-5-18': 'SYSTEM',
-    'S-1-5-19': 'LocalService',
-    'S-1-5-20': 'NetworkService'}
+    builtins = {'S-1-5-18': 'SYSTEM',
+                'S-1-5-19': 'LocalService',
+                'S-1-5-20': 'NetworkService'}
     for sid in Reg.get_users_keys():
         try:
             if sid in builtins:
                 profile = builtins[sid]
             else:
-                profilepath = Reg.get_value(f'HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft\Windows NT/CurrentVersion/ProfileList/{sid}', 'ProfileImagePath')
+                profilepath = Reg.get_value(f'HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/{sid}', 'ProfileImagePath')
                 profile = os.path.basename(profilepath.value)
             
         except:
@@ -116,7 +118,7 @@ def enum_autoruns():
                 autoruns[keys[key]][f'{exception} ("{os.path.basename(key)}" KEY)'] = None
             else:
                 for val in vals:
-                    autoruns[keys[key]][val.name] = val.value
+                    autoruns[keys[key]][val] = vals[val]
     startupentries = []
     for sid in userpaths:
         folder = os.path.join(userpaths[sid], r'appdata\roaming\microsoft\windows\start menu\programs\startup')
@@ -202,9 +204,10 @@ def enum_winlogon():
     '''Enumerates values in the 
        HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon key'''
     ret = []
-    for value in Reg.get_subkey_values(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon')['\\']:
+    values = Reg.get_subkey_values(r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon')['\\']
+    for value in values:
         #print(value)
-        ret.append([value.name, value.value])
+        ret.append([value, values[value]])
     
     return [ret, ['WinLogon Value Name','Value']]
         
@@ -279,25 +282,122 @@ def enum_scheduled_tasks():
             ret.append([file, taskname, taskdir, description, author, principalid, usersid, runlevel, actiontype, actioncontext, action1, action2])
     return (ret, headers)
         
+def enum_windows_packages(full=False):
+    rootkey = r'hklm\software\microsoft\windows\currentversion\component based servicing\packages'
+    valuenames = ['CurrentState', 'InstallName', 'InstallTimeHigh', 'InstallTimeLow', 'InstallUser', 'Visibility']
+    headers = ['CurrentState', 'InstallName', 'Architecture', 'Locale', 'Version', 'InstallTimeHigh', 'InstallTimeLow', 'InstallUser', 'Visibility']
+    ret = []
+    users = map_sid_to_users()
+    states = {0: 'Absent',
+              5: 'Uninstall Pending',
+              0x10: 'Resolving',
+              0x20: 'Resolved',
+              0x30: 'Staging',
+              0x40: 'Staged',
+              0x50: 'Superseded',
+              0x60: 'Install Pending',
+              0x65: 'Partially Installed',
+              0x70: 'Installed',
+              0x80: 'Permanent'}
+    for subkey in Reg.list_subkeys(rootkey):
+        key = os.path.join(rootkey, subkey)
+        packages = Reg.get_subkey_values(key)['\\']
+        row = []
+        if not full and Reg.get_value(key, 'CurrentState').value != 0x70:
+            continue
+        for valuename in valuenames:
+            value = packages.get(valuename, '')
+            if valuename == 'InstallUser' and len(value):
+                value = users.get(value, value)
+            elif valuename == 'CurrentState':
+                value = states.get(value, f'0x{value:02x}')
+            if valuename == 'InstallName':
+                pkgname, _, pkgarch, pkglocale, pkgversion = value.rstrip('.mum').split('~')
+                row.append(pkgname)
+                row.append(pkgarch)
+                row.append(pkglocale)
+                row.append(pkgversion)
+            else:
+                row.append(value)
+            #print(row)
+        ret.append(row)
+        #break
+    return (ret, headers)
+
+def get_args():
+    parser = argparse.ArgumentParser(description='A tool that extracts information about a host')
+    parser.add_argument('--accounts', '-a', required=False, default=False, action='store_true',
+                        help='Extract user information from the host')
+    parser.add_argument('--autoruns', '-r', required=False, default=False, action='store_true',
+                        help='Extract autostart information from registry and startup folders')
+    parser.add_argument('--services', '-S', required=False, default=False, action='store_true',
+                        help='Extract details about services')
+    parser.add_argument('--tasks', '-t', required=False, default=False, action='store_true',
+                        help='Extract scheduled task information')
+    parser.add_argument('--sysinfo', '-i', required=False, default=False, action='store_true',
+                        help='Extract OS information from the host')
+    parser.add_argument('--software', '-s', required=False, default=False, action='store_true',
+                        help='Extract details about installed applications')
+    parser.add_argument('--winlogon', '-w', required=False, default=False, action='store_true',
+                        help='Extract information from the winlogon registry key')
+    parser.add_argument('--updates', '-u', required=False, default=False, action='store_true',
+                        help='Extract details about installed windows updates')
+    parser.add_argument('--updates-full', '-U', required=False, default=False, action='store_true',
+                        help='Extract details about windows updates/packages (regardless of installation state)')
+    parser.add_argument('--all', '-A', required=False, default=False, action='store_true',
+                        help='Extract all information from the host')
+    parser.add_argument('--loglevel', '-L', required=False, default=False, type=str,
+                        help='Log level: DEBUG, INFO, WARNING, etc...')
+    
+    args = parser.parse_args()
+    if not (args.accounts or args.autoruns or args.services or args.tasks or
+            args.sysinfo or args.software or args.winlogon or args.updates or 
+            args.updates_full):
+        args.all = True
+    if args.all:
+        args.accounts = args.autoruns = args.services = args.tasks = \
+        args.software = args.winlogon = args.updates = args.updates_full = \
+        args.sysinfo = True
+    return args
 
 def main():
-    users = enum_users()
-    services = enum_services()
-    autoruns = enum_autoruns()
-    sidinfo = map_sid_to_users()
-    systeminfo = enum_system()
-    installedsoftware = enum_installed_software()
-    winlogon = enum_winlogon()
-    tasks = enum_scheduled_tasks()
+    args = get_args()
+   
+    if args.accounts:
+        users = enum_users()
+        sidinfo = map_sid_to_users()
+        print_table_ex([[user] for user in users], ['Username'], 'Users')
+        print_table_ex([[sidinfo[x], x] for x in sidinfo.keys()], 
+                       headers=['user', 'SID'], 
+                       title='User SID Info')
+    if args.autoruns:
+        autoruns = enum_autoruns()
+        print_table(autoruns, "AutoRuns")
 
-    print_table(systeminfo, 'System Information')
-    print_table_ex([[user] for user in users], ['Username'], 'Users')
-    print_table_ex([[sidinfo[x], x] for x in sidinfo.keys()], headers=['user', 'SID'], title='User SID Info')
-    print_table(autoruns, "AutoRuns")
-    print_table(services, 'Services')
-    print_table(installedsoftware, 'Installed Apps')
-    print_table(winlogon, 'WinLogon Settings')
-    print_table(tasks, 'Scheduled Tasks')
+    if args.sysinfo:
+        systeminfo = enum_system()
+        print_table(systeminfo, 'System Information')
 
+    if args.winlogon:
+        winlogon = enum_winlogon()
+        print_table(winlogon, 'WinLogon Settings')
+
+    if args.services:
+        services = enum_services()
+        print_table(services, 'Services')
+
+    if args.software:
+        installedsoftware = enum_installed_software()
+        print_table(installedsoftware, 'Installed Apps')
+
+    if args.tasks:
+        tasks = enum_scheduled_tasks()
+        print_table(tasks, 'Scheduled Tasks')
+
+    if args.updates or args.updates_full:
+        packages = enum_windows_packages(args.updates_full)
+        print_table(packages, 'Installed Updates')
+    
+    
 if __name__ == '__main__':
     main()

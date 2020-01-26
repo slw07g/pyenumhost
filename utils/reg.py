@@ -97,10 +97,11 @@ class Reg:
     @staticmethod
     def get_hkey_values(hkey):
         hkey = Reg.open_key(hkey) if type(hkey) == str else hkey
-        ret = []
+        ret = {}
         for i in range(0xFFFF):
             try:
-                ret.append(Value(wr.EnumValue(hkey, i)))
+                v = Value(wr.EnumValue(hkey, i))
+                ret[v.name] = v.value
                 
             except:
                 #print(traceback.format_exc())
