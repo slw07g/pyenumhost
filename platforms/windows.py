@@ -77,7 +77,7 @@ def enum_autoruns():
             f'hkey_users/{sid}/software/microsoft/windows/currentversion/runonce'] = users[
                 sid]
         keys[
-            f'hkey_users/{sid}/Software\Microsoft/Windows NT/CurrentVersion/Windows/Run'] = users[
+            f'hkey_users/{sid}/Software/Microsoft/Windows NT/CurrentVersion/Windows/Run'] = users[
                 sid]
         userpaths[sid] = Reg.get_value(
             f'HKLM/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/{sid}',
@@ -109,7 +109,7 @@ def enum_autoruns():
         folder = os.path.join(
             userpaths[sid],
             r'appdata\roaming\microsoft\windows\start menu\programs\startup')
-        for root, subdirs, files in os.walk(folder):
+        for root, _, files in os.walk(folder):
             for file in files:
                 startupentries.append(
                     [users[sid], 'STARTUP_FOLDER',
@@ -224,7 +224,7 @@ def enum_services():
 
 def enum_winlogon():
     '''Enumerates values in the 
-       HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon key'''
+       HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\WinLogon key'''
     ret = []
     values = Reg.get_subkey_values(
         r'HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinLogon')['\\']
@@ -272,7 +272,7 @@ def enum_scheduled_tasks():
         'PrincipalId', 'PrincipalSID', 'RunLevel', 'Action', 'ActionContext',
         'Exec/Handler', 'Arguments/Data'
     ]
-    for root, subdirs, files in os.walk(
+    for root, _, files in os.walk(
             os.path.expandvars(r'%windir%\system32\tasks')):
         for file in files:
             taskpath = os.path.join(root, file)
