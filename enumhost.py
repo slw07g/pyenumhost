@@ -5,8 +5,8 @@
   running the script. This is only necessary if encountering a 
   UnicodeEncodeError exception. This can be done like so:
   
-    C:\> set PYTHONIOENCODING=utf16
-    C:\> python enumhost.py > output.txt
+    cmd> set PYTHONIOENCODING=utf16
+    cmd> python enumhost.py > output.txt
 
   Requires packages: columnar, xmltodict
 
