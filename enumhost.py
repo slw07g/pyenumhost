@@ -25,7 +25,6 @@ import xmltodict
 import platforms
 
 
-
 def on_windows():
     return sys.platform.lower() == 'win32'
 
@@ -45,9 +44,10 @@ def main():
         from platforms import macos as platformenum
     if on_linux():
         from platforms import nix as platformenum
-    
+
     args = platformenum.get_args()
     platformenum.main(args)
+
 
 if __name__ == '__main__':
     main()

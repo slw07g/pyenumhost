@@ -3,6 +3,8 @@ import datetime
 import os
 import traceback
 
+import xmltodict
+
 try:
     from platforms.utils.reg import Reg
     from platforms.utils import printer
