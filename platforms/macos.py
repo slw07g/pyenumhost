@@ -76,15 +76,16 @@ def get_users():
             'DisplayName': name.strip()
         }
     printer.print_table_from_dicts(userinfo.values(), "Users")
-
+    return userinfo
 
 def get_args():
+    # TODO
     return None
 
 def main(args=None):
     launch_agents = get_launchagents()
     launch_daemons = get_launchdaemons()
-    get_users()
+    users = get_users()
 
 
 if __name__ == '__main__':
