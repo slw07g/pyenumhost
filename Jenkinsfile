@@ -5,6 +5,8 @@ pipeline {
         stage('build') {
             steps {
                 sh 'python --version'
+                sh 'pip3 install pyinstaller'
+                sh 'pip3 install -r requirements.txt'
             }
         }
     }
