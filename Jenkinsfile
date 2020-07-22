@@ -16,6 +16,7 @@ pipeline {
                 sh 'chmod +x .venv/bin/activate'
                 sh '.venv/bin/activate'
                 sh 'pip3 install pyinstaller'
+                sh 'find . | grep pyinstaller'
                 sh 'pip3 install -r requirements.txt'
                 sh 'pyinstaller --onefile enumhost.py'
                 sh 'dist/enumhost --all'
