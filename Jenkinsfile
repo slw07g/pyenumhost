@@ -15,7 +15,7 @@ pipeline {
                 sh 'ls -al .venv/bin'
                 sh 'chmod +x .venv/bin/activate'
                 sh '.venv/bin/activate'
-                sh 'export PATH=`pwd`/.local/bin:$PATH'
+                sh 'export PATH=.local/bin:$PATH'
                 sh 'pip3 install pyinstaller'
                 sh 'find . | grep pyinstaller'
                 sh 'ls -al .local/bin/pyinstaller'
