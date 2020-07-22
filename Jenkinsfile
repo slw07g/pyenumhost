@@ -2,7 +2,7 @@
 pipeline {
     agent { docker { image 'python:3.8' } }
     stages {
-        stage('build') {
+        stage('prep') {
             steps {
               withEnv(["HOME=${env.WORKSPACE}"]) {
                 sh 'python --version'
@@ -11,5 +11,14 @@ pipeline {
               }
             }
         }
+        stage('build') {
+            steps {
+              withEnv(["HOME=${env.WORKSPACE}"]) {
+                sh 'pyinstaller --onefile enumhost.py'
+               	sh 'dis/enumhost --all'
+              }
+            }
+        }
+
     }
 }
