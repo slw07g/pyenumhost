@@ -13,7 +13,7 @@ pipeline {
                 sh 'python --version'
                 sh 'python -m venv .venv'
                 sh 'ls -al .venv/bin'
-                sh 'chmod +x .venv/bin/activate
+                sh 'chmod +x .venv/bin/activate'
                 sh '.venv/bin/activate'
                 sh 'pip3 install pyinstaller'
                 sh 'pip3 install -r requirements.txt'
