@@ -1,9 +1,11 @@
 /* Jenkinsfile (Declarative Pipeline) */
 pipeline {
-    agent { docker { image 'python:3.8' 
-                     args '--user0:0'
-                   } 
-          }
+    agent { 
+        docker { 
+            image 'python:3.8' 
+            args '--user 0:0'
+        } 
+    }
     stages {
         stage('prep') {
             steps {
