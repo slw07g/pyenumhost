@@ -20,7 +20,7 @@ pipeline {
                 sh 'find . | grep pyinstaller'
                 sh 'ls -al .local/bin/pyinstaller'
                 sh 'pip3 install -r requirements.txt'
-                sh 'pyinstaller --onefile enumhost.py'
+                sh '.local/bin/pyinstaller --onefile enumhost.py'
                 sh 'dist/enumhost --all'
               }
             }
