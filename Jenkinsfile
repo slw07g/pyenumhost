@@ -6,19 +6,12 @@ pipeline {
             steps {
               withEnv(["HOME=${env.WORKSPACE}"]) {
                 sh 'python --version'
-                sh 'pip3 install pyinstaller'
-                sh 'pip3 install -r requirements.txt'
-              }
-            }
-        }
-        stage('build') {
-            steps {
-              withEnv(["HOME=${env.WORKSPACE}"]) {
+                sh 'pip3 install --user pyinstaller'
+                sh 'pip3 install --user -r requirements.txt'
                 sh 'pyinstaller --onefile enumhost.py'
-               	sh 'dis/enumhost --all'
+                sh 'dis/enumhost --all'
               }
             }
         }
-
     }
 }
