@@ -3,6 +3,7 @@ pipeline {
     agent { 
         docker { 
             image 'python:3.8' 
+            args '--user 1000:1000'
         } 
     }
     stages {
