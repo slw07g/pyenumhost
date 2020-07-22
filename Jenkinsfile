@@ -18,6 +18,7 @@ pipeline {
                 sh 'export PATH=`pwd`/.local/bin:$PATH'
                 sh 'pip3 install pyinstaller'
                 sh 'find . | grep pyinstaller'
+                sh 'ls -al .local/bin/pyinstaller'
                 sh 'pip3 install -r requirements.txt'
                 sh 'pyinstaller --onefile enumhost.py'
                 sh 'dist/enumhost --all'
