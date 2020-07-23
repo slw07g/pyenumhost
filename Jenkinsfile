@@ -1,10 +1,10 @@
 /* Jenkinsfile (Declarative Pipeline) */
 pipeline {
     agent { 
-        label 'python-docker'
         docker { 
             image 'python:3.8'
             args '--user 0:0 -v /var/run/docker.sock:/var/run/docker.sock '
+            label 'python-docker'
         } 
     }
     stages {
