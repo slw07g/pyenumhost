@@ -17,8 +17,6 @@ pipeline {
                 sh '.venv/bin/activate'
                 sh 'export PATH=.local/bin:$PATH'
                 sh 'pip3 install pyinstaller'
-                sh 'find . | grep pyinstaller'
-                sh 'ls -al .local/bin/pyinstaller'
                 sh 'pip3 install -r requirements.txt'
                 sh '.local/bin/pyinstaller --onefile enumhost.py'
                 sh 'dist/enumhost --all'
