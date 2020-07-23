@@ -19,7 +19,7 @@ pipeline {
                   sh 'PWD=`pwd`; export PATH=${PWD}/.local/bin:$PATH'
                 sh 'pip3 install pyinstaller'
                 sh 'pip3 install -r requirements.txt'
-                sh '.local/bin/pyinstaller --onefile enumhost.py'
+                sh 'pyinstaller --onefile enumhost.py'
                 sh 'dist/enumhost --all'
               }
             }
