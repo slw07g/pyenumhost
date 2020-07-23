@@ -16,7 +16,7 @@ pipeline {
                 sh 'ls -al .venv/bin'
                 sh 'chmod +x .venv/bin/activate'
                 sh '.venv/bin/activate'
-                sh 'PWD=`pwd`; export PATH=$pwd/.local/bin:$PATH'
+                  sh 'PWD=`pwd`; export PATH=${PWD}/.local/bin:$PATH'
                 sh 'pip3 install pyinstaller'
                 sh 'pip3 install -r requirements.txt'
                 sh '.local/bin/pyinstaller --onefile enumhost.py'
