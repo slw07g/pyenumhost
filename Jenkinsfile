@@ -3,7 +3,7 @@ pipeline {
     agent { 
         docker { 
             image 'python:3.8'
-            args '--user 0:0 -v /var/run/docker.sock:/var/run/docker.sock -v /var/jenkins_home:/var/jenkins_home:rw'
+            args '--user 0:0 -v /var/run/docker.sock:/var/run/docker.sock '
             label 'python-docker'
         } 
     }
